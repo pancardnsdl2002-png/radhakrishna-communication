@@ -8,7 +8,7 @@ BASE_DIR = Path(__file__).resolve().parent
 DB_PATH = os.environ.get('DATABASE_PATH', str(BASE_DIR / 'shop.db'))
 app = Flask(__name__)
 app.secret_key = os.environ.get('SECRET_KEY', secrets.token_hex(32))
-app.config['WHATSAPP_NUMBER'] = os.environ.get('WHATSAPP_NUMBER', '919876543210')  # country code + number, digits only
+app.config['WHATSAPP_NUMBER'] = os.environ.get('WHATSAPP_NUMBER', '917602867113')  # country code + number, digits only
 
 SAMPLE_PRODUCTS = [
     (1, 'Smartphone', 'Mobile', 12999, 'A stylish smartphone with a high-quality display and powerful performance.', 'https://placehold.co/900x650?text=Smartphone', 'https://placehold.co/900x650?text=Smartphone+Front,https://placehold.co/900x650?text=Smartphone+Back,https://placehold.co/900x650?text=Smartphone+Side', 1),
