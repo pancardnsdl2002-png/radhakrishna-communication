@@ -19,7 +19,7 @@ SAMPLE_PRODUCTS = [
 
 def db():
    conn = psycopg2.connect('postgresql://radhakrishna_db_user:KLmNGAzwjw9vZZm2I6lZl0QSRtMfrIkk@dpg-dauvpou0tbcc73cuofm0-a/radhakrishna_db')
-    return conn
+   return conn
 
 def init_db():
     with db() as con:
