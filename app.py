@@ -63,7 +63,7 @@ def index():
     search = request.args.get('q', '').strip()
     category = request.args.get('category', '').strip()
     with db() as con:
-        categories = [r['category'] for r in con.execute('SELECT DISTINCT category FROM products WHERE active=1 ORDER BY category')]
+        categories = [r['category'] for r in cur.execute('SELECT DISTINCT category FROM products WHERE active=1 ORDER BY category')]
         sql = 'SELECT * FROM products WHERE active=1'
         params = []
         if search:
@@ -73,7 +73,7 @@ def index():
             sql += ' AND category=?'
             params.append(category)
         sql += ' ORDER BY id DESC'
-        products = [product_dict(r) for r in con.execute(sql, params).fetchall()]
+        products = [product_dict(r) for r in cur.cxecute(sql, params).fetchall()]
     return render_template('index.html', products=products, categories=categories, search=search, selected_category=category)
 
 @app.route('/product/<int:product_id>')
