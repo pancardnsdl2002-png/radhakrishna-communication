@@ -1,4 +1,4 @@
-import os, sqlite3, secrets
+import os, psycopg2, secrets
 from functools import wraps
 from pathlib import Path
 from flask import Flask, render_template, request, redirect, url_for, session, flash, abort
@@ -18,8 +18,7 @@ SAMPLE_PRODUCTS = [
 ]
 
 def db():
-    conn = sqlite3.connect(DB_PATH)
-    conn.row_factory = sqlite3.Row
+    conn = psycopg2.connect(postgresql://radhakrishna_db_user:KLmNGAzwjw9vZZm2I6lZl0QSRtMfrIkk@dpg-dauvpou0tbcc73cuofm0-a/radhakrishna_db)
     return conn
 
 def init_db():
