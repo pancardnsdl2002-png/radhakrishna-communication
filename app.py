@@ -25,11 +25,11 @@ def init_db():
     with db() as con:
         cur = con.cursor()
         cur.execute('''CREATE TABLE IF NOT EXISTS products (
-id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT NOT NULL, category TEXT NOT NULL, 
+id SERIAL PRIMARY KEY, name TEXT NOT NULL, category TEXT NOT NULL, 
 price REAL NOT NULL DEFAULT 0, description TEXT NOT NULL DEFAULT '', image TEXT NOT NULL DEFAULT '', 
 gallery TEXT NOT NULL DEFAULT '', active INTEGER NOT NULL DEFAULT 1)''')
         cur.execute('''CREATE TABLE IF NOT EXISTS admins (
-id INTEGER PRIMARY KEY AUTOINCREMENT, username TEXT UNIQUE NOT NULL, password_hash TEXT NOT NULL)''')
+id SERIAL PRIMARY KEY, username TEXT UNIQUE NOT NULL, password_hash TEXT NOT NULL)''')
         cur.execute('SELECT COUNT(*) FROM products')
         count = cur.fetchone()[0]
 
