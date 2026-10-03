@@ -11,13 +11,14 @@ BASE_DIR = Path(__file__).resolve().parent
 DB_PATH = os.environ.get('DATABASE_PATH', str(BASE_DIR / 'shop.db'))
 app = Flask(__name__)
 app.secret_key = os.environ.get('SECRET_KEY', secrets.token_hex(32))
-app.config['WHATSAPP_NUMBER'] = os.environ.get('WHATSAPP_NUMBER', '917602687113')  # country code + number, digits only
+app.config['WHATSAPP_NUMBER'] = os.environ.get('WHATSAPP_NUMBER', '917602687113')
 
+# Sample data: (id, name, category, price, mrp, in_stock, description, image, gallery, active)
 SAMPLE_PRODUCTS = [
-    (1, 'Smartphone', 'Mobile', 12999, 'A stylish smartphone with a high-quality display and powerful performance.', 'https://placehold.co/900x650?text=Smartphone', 'https://placehold.co/900x650?text=Smartphone+Front,https://placehold.co/900x650?text=Smartphone+Back,https://placehold.co/900x650?text=Smartphone+Side', 1),
-    (2, 'Wireless Headphones', 'Headphones', 1499, 'Enjoy wireless audio with comfortable ear cushions and clear sound.', 'https://placehold.co/900x650?text=Headphones', 'https://placehold.co/900x650?text=Headphones+Front,https://placehold.co/900x650?text=Headphones+Side,https://placehold.co/900x650?text=Headphones+Case', 1),
-    (3, 'Mobile Charger', 'Accessories', 499, 'A compact mobile charger for everyday use.', 'https://placehold.co/900x650?text=Mobile+Charger', 'https://placehold.co/900x650?text=Charger+Front,https://placehold.co/900x650?text=Charger+Side', 1),
-    (4, 'Bluetooth Speaker', 'Electronics', 1999, 'A portable Bluetooth speaker for music at home or outdoors.', 'https://placehold.co/900x650?text=Bluetooth+Speaker', 'https://placehold.co/900x650?text=Speaker+Front,https://placehold.co/900x650?text=Speaker+Back', 1),
+    (1, 'Smartphone', 'Mobile', 12999, 15999, 1, 'A stylish smartphone with a high-quality display and powerful performance.', 'https://placehold.co/900x650?text=Smartphone', 'https://placehold.co/900x650?text=Smartphone+Front,https://placehold.co/900x650?text=Smartphone+Back,https://placehold.co/900x650?text=Smartphone+Side', 1),
+    (2, 'Wireless Headphones', 'Headphones', 1499, 2999, 1, 'Enjoy wireless audio with comfortable ear cushions and clear sound.', 'https://placehold.co/900x650?text=Headphones', 'https://placehold.co/900x650?text=Headphones+Front,https://placehold.co/900x650?text=Headphones+Side,https://placehold.co/900x650?text=Headphones+Case', 1),
+    (3, 'Mobile Charger', 'Accessories', 499, 999, 1, 'A compact mobile charger for everyday use.', 'https://placehold.co/900x650?text=Mobile+Charger', 'https://placehold.co/900x650?text=Charger+Front,https://placehold.co/900x650?text=Charger+Side', 1),
+    (4, 'Bluetooth Speaker', 'Electronics', 1999, 3499, 1, 'A portable Bluetooth speaker for music at home or outdoors.', 'https://placehold.co/900x650?text=Bluetooth+Speaker', 'https://placehold.co/900x650?text=Speaker+Front,https://placehold.co/900x650?text=Speaker+Back', 1),
 ]
 
 def db():
@@ -30,18 +31,35 @@ def db():
 def init_db():
     with db() as con:
         cur = con.cursor()
+        # টেবিল তৈরি
         cur.execute('''CREATE TABLE IF NOT EXISTS products (
-id SERIAL PRIMARY KEY, name TEXT NOT NULL, category TEXT NOT NULL, 
-price REAL NOT NULL DEFAULT 0, description TEXT NOT NULL DEFAULT '', image TEXT NOT NULL DEFAULT '', 
-gallery TEXT NOT NULL DEFAULT '', active INTEGER NOT NULL DEFAULT 1)''')
+            id SERIAL PRIMARY KEY, 
+            name TEXT NOT NULL, 
+            category TEXT NOT NULL, 
+            price REAL NOT NULL DEFAULT 0,
+            mrp REAL NOT NULL DEFAULT 0,
+            in_stock INTEGER NOT NULL DEFAULT 1,
+            description TEXT NOT NULL DEFAULT '', 
+            image TEXT NOT NULL DEFAULT '', 
+            gallery TEXT NOT NULL DEFAULT '', 
+            active INTEGER NOT NULL DEFAULT 1
+        )''')
+        
+        # পূর্বের টেবিল থাকলে mrp ও in_stock কলাম যোগ করে নেওয়া
+        cur.execute('''ALTER TABLE products ADD COLUMN IF NOT EXISTS mrp REAL NOT NULL DEFAULT 0;''')
+        cur.execute('''ALTER TABLE products ADD COLUMN IF NOT EXISTS in_stock INTEGER NOT NULL DEFAULT 1;''')
+        
         cur.execute('''CREATE TABLE IF NOT EXISTS admins (
-id SERIAL PRIMARY KEY, username TEXT UNIQUE NOT NULL, password_hash TEXT NOT NULL)''')
+            id SERIAL PRIMARY KEY, username TEXT UNIQUE NOT NULL, password_hash TEXT NOT NULL)''')
         
         cur.execute('SELECT COUNT(*) FROM products')
         count = cur.fetchone()['count']
 
         if count == 0:
-            cur.executemany('INSERT INTO products (id,name,category,price,description,image,gallery,active) VALUES (%s,%s,%s,%s,%s,%s,%s,%s)', SAMPLE_PRODUCTS)
+            cur.executemany(
+                'INSERT INTO products (id,name,category,price,mrp,in_stock,description,image,gallery,active) VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)', 
+                SAMPLE_PRODUCTS
+            )
         
         cur.execute('SELECT COUNT(*) FROM admins')
         if cur.fetchone()['count'] == 0:
@@ -62,6 +80,19 @@ def product_dict(row):
         return None
     item = dict(row)
     item['gallery_list'] = [u.strip() for u in (item.get('gallery') or '').split(',') if u.strip()]
+    
+    price = float(item.get('price') or 0)
+    mrp = float(item.get('mrp') or 0)
+    
+    # MRP যদি সেলিং প্রাইস থেকে বেশি হয়, তবেই ডিসকাউন্ট ক্যালকুলেট হবে
+    if mrp > price and mrp > 0:
+        discount = round(((mrp - price) / mrp) * 100)
+        item['discount_percent'] = discount
+        item['has_discount'] = True
+    else:
+        item['discount_percent'] = 0
+        item['has_discount'] = False
+        
     return item
 
 @app.context_processor
@@ -80,7 +111,7 @@ def index():
         sql = 'SELECT * FROM products WHERE active=1'
         params = []
         if search:
-            sql += ' AND (name LIKE %s OR description LIKE %s OR category LIKE %s)'
+            sql += ' AND (name ILIKE %s OR description ILIKE %s OR category ILIKE %s)'
             params += [f'%{search}%'] * 3
         if category:
             sql += ' AND category=%s'
@@ -137,6 +168,16 @@ def admin_dashboard():
         products = [product_dict(r) for r in cur.fetchall()]
     return render_template('admin.html', products=products)
 
+# স্টক ইন/আউট টগল করার রুট
+@app.route('/admin/product/<int:product_id>/toggle-stock', methods=['POST'])
+@admin_required
+def toggle_stock(product_id):
+    with db() as con:
+        cur = con.cursor()
+        cur.execute('UPDATE products SET in_stock = CASE WHEN in_stock = 1 THEN 0 ELSE 1 END WHERE id = %s', (product_id,))
+    flash('Stock status updated.', 'success')
+    return redirect(url_for('admin_dashboard'))
+
 @app.route('/admin/product/new', methods=['GET', 'POST'])
 @app.route('/admin/product/<int:product_id>/edit', methods=['GET', 'POST'])
 @admin_required
@@ -151,7 +192,11 @@ def admin_product_form(product_id=None):
             
     if product_id and not row:
         abort(404)
-    product = product_dict(row) if row else {'name':'','category':'','price':'','description':'','image':'','gallery':'','active':1}
+        
+    product = product_dict(row) if row else {
+        'name':'','category':'','price':'','mrp':'',
+        'description':'','image':'','gallery':'','active':1, 'in_stock':1
+    }
     
     if request.method == 'POST':
         name = request.form.get('name', '').strip()
@@ -159,25 +204,41 @@ def admin_product_form(product_id=None):
         description = request.form.get('description', '').strip()
         image_url = request.form.get('image', '').strip()
         gallery = request.form.get('gallery', '').strip()
+        
         try:
             price = float(request.form.get('price', '0'))
         except ValueError:
             price = -1
+            
+        try:
+            mrp = float(request.form.get('mrp', '0'))
+        except ValueError:
+            mrp = 0.0
+            
         active = 1 if request.form.get('active') == 'on' else 0
+        in_stock = 1 if request.form.get('in_stock') == 'on' else 0
         
         if not name or not category or price < 0:
             flash('Enter a product name, category, and a valid non-negative price.', 'error')
             product = dict(request.form)
             product['active'] = active
+            product['in_stock'] = in_stock
             return render_template('product_form.html', product=product, editing=bool(product_id))
             
         with db() as con:
             cur = con.cursor()
-            values = (name, category, price, description, image_url, gallery, active)
+            values = (name, category, price, mrp, in_stock, description, image_url, gallery, active)
             if product_id:
-                cur.execute('UPDATE products SET name=%s,category=%s,price=%s,description=%s,image=%s,gallery=%s,active=%s WHERE id=%s', values + (product_id,))
+                cur.execute('''
+                    UPDATE products 
+                    SET name=%s, category=%s, price=%s, mrp=%s, in_stock=%s, description=%s, image=%s, gallery=%s, active=%s 
+                    WHERE id=%s
+                ''', values + (product_id,))
             else:
-                cur.execute('INSERT INTO products (name,category,price,description,image,gallery,active) VALUES (%s,%s,%s,%s,%s,%s,%s)', values)
+                cur.execute('''
+                    INSERT INTO products (name, category, price, mrp, in_stock, description, image, gallery, active) 
+                    VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s)
+                ''', values)
         flash('Product saved.', 'success')
         return redirect(url_for('admin_dashboard'))
         
