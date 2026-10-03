@@ -1,1 +1,60 @@
-{% extends 'base.html' %}{% block title %}{{ 'Edit' if editing else 'Add' }} product{% endblock %}{% block content %}<div class="form-page-head"><a class="text-link" href="{{ url_for('admin_dashboard') }}">← Back to admin</a><h1>{{ 'Edit product' if editing else 'Add a product' }}</h1><p class="muted">Use public image URLs. Separate multiple gallery image URLs with commas.</p></div><form method="post" class="editor-form"><div class="form-grid"><label>Product name *<input name="name" value="{{ product.get('name','') }}" required maxlength="160"></label><label>Category *<input name="category" value="{{ product.get('category','') }}" required maxlength="80" placeholder="e.g. Mobile"></label><label>Price (INR) *<input type="number" name="price" min="0" step="0.01" value="{{ product.get('price','') }}" required></label><label>Main image URL<input type="url" name="image" value="{{ product.get('image','') }}" placeholder="https://..."></label><label class="span-two">Gallery image URLs<input name="gallery" value="{{ product.get('gallery','') }}" placeholder="https://image-one.jpg, https://image-two.jpg"></label><label class="span-two">Description<textarea name="description" rows="5">{{ product.get('description','') }}</textarea></label><label class="checkbox-label span-two"><input type="checkbox" name="active" {% if product.get('active',1) %}checked{% endif %}> Show this product in the public catalogue</label></div><div class="form-actions"><button class="btn btn-dark" type="submit">Save product</button><a class="btn btn-outline" href="{{ url_for('admin_dashboard') }}">Cancel</a></div></form>{% endblock %}
+{% extends 'base.html' %}
+{% block title %}{{ 'Edit' if editing else 'Add' }} product{% endblock %}
+{% block content %}
+<div class="form-page-head">
+  <a class="text-link" href="{{ url_for('admin_dashboard') }}">← Back to admin</a>
+  <h1>{{ 'Edit product' if editing else 'Add a product' }}</h1>
+  <p class="muted">Use public image URLs. Separate multiple gallery image URLs with commas.</p>
+</div>
+
+<form method="post" class="editor-form">
+  <div class="form-grid">
+    <label>Product name *
+      <input name="name" value="{{ product.get('name','') }}" required maxlength="160">
+    </label>
+
+    <label>Category *
+      <input name="category" value="{{ product.get('category','') }}" required maxlength="80" placeholder="e.g. Mobile">
+    </label>
+
+    {# সেলিং প্রাইস #}
+    <label>Selling Price (INR) *
+      <input type="number" name="price" min="0" step="0.01" value="{{ product.get('price','') }}" required placeholder="e.g. 12999">
+    </label>
+
+    {# MRP ফিল্ড #}
+    <label>MRP (Original Price in INR)
+      <input type="number" name="mrp" min="0" step="0.01" value="{{ product.get('mrp','') }}" placeholder="e.g. 15999">
+    </label>
+
+    <label class="span-two">Main image URL
+      <input type="url" name="image" value="{{ product.get('image','') }}" placeholder="https://...">
+    </label>
+
+    <label class="span-two">Gallery image URLs
+      <input name="gallery" value="{{ product.get('gallery','') }}" placeholder="https://image-one.jpg, https://image-two.jpg">
+    </label>
+
+    <label class="span-two">Description
+      <textarea name="description" rows="5">{{ product.get('description','') }}</textarea>
+    </label>
+
+    {# পাবলিক ক্যাটালগ চেকবক্স #}
+    <label class="checkbox-label span-two">
+      <input type="checkbox" name="active" {% if product.get('active', 1) %}checked{% endif %}> 
+      Show this product in the public catalogue
+    </label>
+
+    {# স্টক ইন/আউট চেকবক্স #}
+    <label class="checkbox-label span-two">
+      <input type="checkbox" name="in_stock" {% if product.get('in_stock', 1) %}checked{% endif %}> 
+      Product is In Stock (Uncheck if Out of Stock)
+    </label>
+  </div>
+
+  <div class="form-actions">
+    <button class="btn btn-dark" type="submit">Save product</button>
+    <a class="btn btn-outline" href="{{ url_for('admin_dashboard') }}">Cancel</a>
+  </div>
+</form>
+{% endblock %}
